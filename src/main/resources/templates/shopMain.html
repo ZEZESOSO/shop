@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lemon Soft Market</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;500;700&display=swap" rel="stylesheet">
+    <style>
+        /* 기본 스타일 초기화 */
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Noto Sans KR', sans-serif; }
+        body { background-color: #fffdf7; color: #444; } /* 배경도 아주 연한 크림색 */
+
+        /* 상단 헤더: 파스텔 레몬 */
+        header {
+            background-color: #FFF9C4;
+            padding: 30px 40px;
+            border-bottom-left-radius: 40px; /* 하단 곡선 */
+            border-bottom-right-radius: 40px;
+            box-shadow: 0 4px 15px rgba(255, 249, 196, 0.4);
+        }
+        .header-content { display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto; }
+        .logo { font-size: 24px; font-weight: 700; color: #444; letter-spacing: -1px; }
+
+        /* 부드러운 검색창 */
+        .search-container { margin-top: 20px; max-width: 600px; margin-left: auto; margin-right: auto; }
+        .search-input {
+            width: 100%;
+            padding: 15px 25px;
+            border-radius: 30px; /* 아주 둥글게 */
+            border: 2px solid #FFF59D;
+            background: #fff;
+            outline: none;
+            color: #444;
+            font-size: 15px;
+            transition: all 0.3s;
+        }
+        .search-input:focus { border-color: #FDD835; box-shadow: 0 0 10px rgba(253, 216, 53, 0.2); }
+
+        /* 카테고리 칩: 둥글둥글한 디자인 */
+        .category-nav { padding: 30px 40px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+        .cat-chip {
+            background: #fff;
+            border: 1.5px solid #FFF9C4;
+            padding: 10px 22px;
+            border-radius: 25px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #666;
+        }
+        .cat-chip:hover, .cat-chip.active { background: #FFF9C4; color: #444; font-weight: 500; transform: translateY(-2px); }
+
+        /* 상품 그리드 */
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 40px;
+            padding: 20px 40px 80px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* 상품 카드: 둥근 모서리와 부드러운 그림자 */
+        .product-card {
+            background: #fff;
+            border-radius: 25px; /* 각진 곳 없이 부드럽게 */
+            overflow: hidden;
+            transition: all 0.3s ease;
+            border: 1px solid #f0f0f0;
+        }
+        .product-card:hover { transform: translateY(-10px); box-shadow: 0 15px 30px rgba(0,0,0,0.05); }
+
+        .img-box { position: relative; width: 100%; aspect-ratio: 1/1.1; overflow: hidden; background: #fafafa; }
+        .img-box img { width: 100%; height: 100%; object-fit: cover; }
+
+        /* 품절 안내도 둥글게 */
+        .sold-out-badge {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px 25px;
+            border-radius: 20px;
+            font-weight: 700;
+            color: #999;
+            letter-spacing: 1px;
+        }
+
+        .product-info { padding: 20px; }
+        .p-brand { font-size: 11px; color: #FBC02D; font-weight: 700; margin-bottom: 5px; }
+        .p-name { font-size: 15px; font-weight: 500; margin-bottom: 10px; color: #444; height: 42px; overflow: hidden; }
+        .p-price { font-size: 17px; font-weight: 700; color: #333; }
+
+        /* 하트(찜) 버튼 */
+        .like-btn {
+            position: absolute;
+            right: 12px;
+            top: 12px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 1px solid rgba(0,0,0,0.06);
+            background: rgba(255,255,255,0.92);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.15s ease, background 0.15s ease;
+        }
+        .like-btn:hover { transform: scale(1.06); background: rgba(255,255,255,1); }
+        .heart {
+            font-size: 18px;
+            line-height: 1;
+            color: #bbb;
+        }
+        .like-btn[data-liked="true"] .heart { color: #ff5a7a; }
+
+        @media (max-width: 768px) {
+            .product-grid { grid-template-columns: repeat(2, 1fr); gap: 15px; padding: 15px; }
+            header { border-bottom-left-radius: 25px; border-bottom-right-radius: 25px; padding: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="header-content">
+        <div class="logo">LEMON SOFT MARKET</div>
+        <div style="display: flex; gap: 15px; font-size: 13px;">
+            <span>Cart</span>
+            <span th:if="${#authorization.expression('isAnonymous()')}">
+                <a href="/members/login" style="text-decoration: none; color: #444; background: #fff; padding: 5px 15px; border-radius: 15px;">Login</a>
+            </span>
+
+            <span th:if="${#authorization.expression('isAuthenticated()')}">
+                <a href="/members/myPage" style="text-decoration: none; color: #444; font-weight: 700;">My</a>
+                <a href="/members/logout" style="margin-left: 10px; color: #999; text-decoration: none; font-size: 11px;">Logout</a>
+            </span>
+        </div>
+    </div>
+    <div class="search-container">
+        <input type="text" class="search-input" placeholder="찾으시는 상품이 있으신가요?">
+    </div>
+</header>
+
+<nav class="category-nav">
+    <a class="cat-chip" th:classappend="${selectedCategory == null || selectedCategory == '전체'} ? ' active' : ''" th:href="@{/(category='전체')}">전체</a>
+    <a class="cat-chip" th:classappend="${selectedCategory == '상의'} ? ' active' : ''" th:href="@{/(category='상의')}">상의</a>
+    <a class="cat-chip" th:classappend="${selectedCategory == 'Pants'} ? ' active' : ''" th:href="@{/(category='Pants')}">Pants</a>
+    <a class="cat-chip" th:classappend="${selectedCategory == 'Outer'} ? ' active' : ''" th:href="@{/(category='Outer')}">Outer</a>
+    <a class="cat-chip" th:classappend="${selectedCategory == 'ACC'} ? ' active' : ''" th:href="@{/(category='ACC')}">ACC</a>
+</nav>
+
+<main class="product-grid">
+    <div class="product-card" th:each="product : ${products}">
+        <div class="img-box">
+            <div class="sold-out-badge" th:if="${product.sellStatus.name() == 'SOLD_OUT'}">SOLD OUT</div>
+
+            <button class="like-btn"
+                    th:attr="data-product-id=${product.id}, data-liked=${product.liked}"
+                    th:if="${#authorization.expression('isAuthenticated()')}">
+                <span class="heart">♥</span>
+            </button>
+            <a th:href="@{'/products/' + ${product.id}}" style="text-decoration:none; color:inherit;">
+                <img th:src="${product.imgUrl}" alt="상품이미지">
+            </a>
+        </div>
+        <div class="product-info">
+            <div class="p-brand">PREMIUM SOFT</div>
+            <div class="p-name" th:text="${product.pName}">포근한 레몬 니트</div>
+            <div class="p-price" th:text="${#numbers.formatInteger(product.price, 3, 'COMMA') + '원'}">49,000원</div>
+        </div>
+    </div>
+</main>
+
+<script>
+  async function toggleWishlist(productId) {
+    const res = await fetch(`/api/wishlist/${productId}/toggle`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    if (!res.ok) {
+      if (res.status === 401 || res.status === 403) {
+        window.location.href = '/members/login';
+        return null;
+      }
+      throw new Error('찜 처리에 실패했습니다.');
+    }
+    return await res.json();
+  }
+
+  document.addEventListener('click', async (e) => {
+    const btn = e.target.closest('.like-btn');
+    if (!btn) return;
+    e.preventDefault();
+    const productId = btn.getAttribute('data-product-id');
+    try {
+      const data = await toggleWishlist(productId);
+      if (!data) return;
+      btn.setAttribute('data-liked', String(!!data.liked));
+    } catch (err) {
+      alert(err.message || '에러가 발생했습니다.');
+    }
+  });
+</script>
+
+</body>
+</html>
